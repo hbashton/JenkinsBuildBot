@@ -1,15 +1,16 @@
 [KEYS]
-bot_api = somelongshithere
+bot_api = BOT API KEY HERE
 [ADMIN]
-id = 1234567
+id = telegram ID
+username = telegram username (ex. @hunter_bruhh)
 [JENKINS]
-on = "please put yes or no here"
-url = jenkins url
+on = yes OR no
+url = your jenkins url
 user = jenkins username
 password = jenkins password
-token = token
-job = job
+token = your secure jenkins token
+job = your jenkins job
 [GERRIT]
-url = gerrit url
-user = gerrituser
-protocol = http or https
+url = gerrit.url.org
+user = your username
+protocol = http OR https

@@ -51,20 +51,27 @@ changelog_help = "/changelog 'text' to set the changelog\n"
 sync_help = "/sync to set sync to on/off\n"
 clean_help = "/clean to set clean to on/off\n"
 repopick_a_help = "/repopick to set repopick on or off\n"
+reset_help = "/reset to set reset on or off\n"
 repopick_b_help = "-- /repopick `changes` to pick from gerrit on build\n"
 open_a_help = "/open to see all open changes\n"
 open_b_help = "-- /open `projects` to see open changes for certain projects\n"
 pickopen_help = "/pickopen to pick all open changes on gerrit\n"
-note_a_help = "/note 'notename' to see the contents of a note\n"
-note_b_help = "-- /note 'notename' 'contents' to set the contents of a note\n"
-note_c_help = "-- /note lock 'notename' to lock a note (admins only)\n"
 help_help = "/help to see this message\n--/help 'command' to see information about that command :)" # love this lmao help_help
 
-jenkinsnotmaster = "Sup *not* master. \n" + hereyago + open_a_help + open_b_help + note_a_help + note_b_help + note_c_help + help_help
-nojenkinsnotmaster = "Sup *not* master. \n" + hereyago + open_a_help + open_b_help + note_a_help + note_b_help + note_c_help + help_help
-jenkinsmaster = "Sup" + username + "\n" + hereyago + build_help + changelog_help + sync_help + clean_help + repopick_a_help + repopick_b_help + pickopen_help + open_a_help + open_b_help + note_a_help + note_b_help + note_c_help + help_help
-nojenkinsmaster = "Sup" + username + "\n" + hereyago + open_a_help + open_b_help + note_a_help + note_b_help + note_c_help + help_help
+jenkinsnotmaster = "Sup *not* master. \n" + hereyago + open_a_help + open_b_help + help_help
+nojenkinsnotmaster = "Sup *not* master. \n" + hereyago + open_a_help + open_b_help + help_help
+jenkinsmaster = "Sup" + username + "\n" + hereyago + build_help + changelog_help + sync_help + clean_help + repopick_a_help + reset_help + repopick_b_help + pickopen_help + open_a_help + open_b_help + help_help
+nojenkinsmaster = "Sup" + username + "\n" + hereyago + open_a_help + open_b_help + help_help
 
+
+cg = "This is an automated build, provided by @BruhhJenkinsBot."
+cg = quote_plus(cg)
+syncparam = "true"
+cleanparam = "false"
+repopickstatus = "false"
+rpick = ""  
+reporeset = "false"
+release = "false"
 def get_admin_ids(bot, chat_id):
     """Returns a list of admin IDs for a given chat."""
     return [admin.user.id for admin in bot.getChatAdministrators(chat_id)]
@@ -106,10 +113,10 @@ def start(bot, update):
                                    action=ChatAction.TYPING)
 
 def help_message(bot, update, args):
-    jenkinsmasterlist = ["build", "changelog", "sync", "clean", "repopick", "pickopen", "open", "note"]
-    nojenkinsmasterlist = ["open", "note"]
-    nojenkinslist = ["open", "note"]
-    jenkinslist = ["open", "note"]
+    jenkinsmasterlist = ["build", "changelog", "sync", "clean", "repopick", "pickopen", "open"]
+    nojenkinsmasterlist = ["open"]
+    nojenkinslist = ["open"]
+    jenkinslist = ["open"]
     args_length = len(args)
     if update.message.from_user.id != int(config['ADMIN']['id']):
         if jenkinsconfig == "yes":
@@ -126,8 +133,6 @@ def help_message(bot, update, args):
                     if args[0] in jenkinslist:
                         if args[0] == "open":
                             helpme = open_a_help + open_b_help
-                        if args[0] == "note":
-                            helpme = note_a_help + note_b_help + note_c_help
                     else:
                         helpme = "That's not a command to ask about."
                 bot.sendChatAction(chat_id=update.message.chat_id,
@@ -155,8 +160,6 @@ def help_message(bot, update, args):
                     if args[0] in nojenkinslist:
                         if args[0] == "open":
                             helpme = open_a_help + open_b_help
-                        if args[0] == "note":
-                            helpme = note_a_help + note_b_help + note_c_help
                     else:
                         helpme = "That's not a command to ask about."
                 bot.sendChatAction(chat_id=update.message.chat_id,
@@ -202,8 +205,6 @@ def help_message(bot, update, args):
                             helpme = pickopen_help
                         if args[0] == "open":
                             helpme = open_a_help + open_b_help
-                        if args[0] == "note":
-                            helpme = note_a_help + note_b_help + note_c_help
                     else:
                         helpme = "That's not a command to ask about."
                 bot.sendChatAction(chat_id=update.message.chat_id,
@@ -243,8 +244,6 @@ def help_message(bot, update, args):
                             helpme = pickopen_help
                         if args[0] == "open":
                             helpme = open_a_help + open_b_help
-                        if args[0] == "note":
-                            helpme = note_a_help + note_b_help + note_c_help
                     else:
                         helpme = "That's not a command to ask about."
                 bot.sendChatAction(chat_id=update.message.chat_id,
@@ -283,7 +282,7 @@ def openchanges(bot, update, args):
 
         bot.sendChatAction(chat_id=update.message.chat_id,
                            action=ChatAction.TYPING)
-        curl = "curl -H 'Accept-Type: application/json' " + protocol + "://" + gerrituser + "@" + gerriturl + "/changes/?q=status:open | sed '1d' > open.json"
+        curl = "rm open.json && curl -H 'Accept-Type: application/json' " + protocol + "://" + gerrituser + "@" + gerriturl + "/changes/?q=status:open | sed '1d' > open.json"
         command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         with open('open.json', encoding='utf-8') as data_file:
             data = json.load(data_file)
@@ -321,7 +320,7 @@ def openchanges(bot, update, args):
                 cnum = cnum + " " + str(data[i]['_number'])
         print(openc)
         print(cnum)
-        if update.message.from_user.id == int(config['ADMIN']['id']):
+        if update.message.from_user.id == int(config['ADMIN']['id']) and update.message.chat.type == "private":
 
             bot.sendMessage(chat_id=update.message.chat_id,
                             text=openc,
@@ -334,171 +333,12 @@ def openchanges(bot, update, args):
                             text=openc,
                             parse_mode="HTML")
 
-def note(bot, update, args):
-    global notes
-    PATH='./notes.json'
-    if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
-        print("Accessing notes.json")
-    else:
-        print ("Either file is missing or is not readable. Creating.")
-        notes = {}
-        with open("notes.json", 'w') as f:
-            json.dump(notes, f)
-    with open("notes.json") as f:
-        notes = json.load(f)
-    chat_idstr = str(update.message.chat_id)
-    try:
-        notes
-    except NameError:
-        notes = {}
-    try:
-        notes[chat_idstr]
-    except KeyError:
-        notes[chat_idstr] = {}
-    try:
-        notes[chat_idstr]["admin"]
-    except KeyError:
-        notes[chat_idstr]["admin"] = {}
-
-    if len(args) == 0:
-        try:
-            notes[chat_idstr]
-        except KeyError:
-            note = "No notes for this chat"
-            bot.sendMessage(chat_id=update.message.chat_id,
-                            text=note)
-            return
-        for i in notes[chat_idstr]:
-            try:
-                note
-            except NameError:
-                note = "Here's a list of notes I have:\n"
-            note = note + i + "\n"
-
-        note = note.replace("admin", "")
-
-        for i in notes[chat_idstr]["admin"]:
-            try:
-                adminnote
-            except NameError:
-                adminnote = "Locked notes:\n"
-            adminnote = adminnote + i + "\n"
-        try:
-            adminnote
-            note = note + adminnote
-        except NameError:
-            note = note
-
-    if len(args) == 1:
-        notename = args[0]
-        if notename == "clearall":
-            if update.message.chat.type != "private":
-                if update.message.from_user.id in get_admin_ids(bot, update.message.chat_id):
-                    saveme = notes[chat_idstr]["admin"]
-                    del notes[chat_idstr]
-                    notes[chat_idstr] = {}
-                    notes[chat_idstr]["admin"] = {}
-                    notes[chat_idstr]["admin"] = saveme
-                    with open("notes.json", 'w') as f:
-                        json.dump(notes, f)
-                    note = "Notes cleared for " + update.message.chat.title
-                else:
-                    note = "clearall is for admins only chutiya"
-            else:
-                del notes[chat_idstr]
-                note = "Notes cleared for this chat"
-        else:
-            if notename == "clearlock":
-                if update.message.chat.type != "private":
-                    if update.message.from_user.id in get_admin_ids(bot, update.message.chat_id):
-                        del notes[chat_idstr]["admin"]
-                        note = "Locked notes cleared for this chat"
-                    else:
-                        note = "clearlock is ESPECIALLY for admins only chutiya"
-                else:
-                    note = "clearlock only for groups"
-            else:
-                if notename != "lock":
-                    if notename in notes[chat_idstr]:
-                        note = notename + ":\n" + str(notes[chat_idstr][notename])
-                    else:
-                        if notename in notes[chat_idstr]["admin"]:
-                            note = notename + ":\n" + str(notes[chat_idstr]["admin"][notename])
-                        else:
-                            note = "That note name exist yet! You can create it with\n/note " + notename + " 'content'"
-
-                else:
-                    note = "Use /note lock 'notename' 'content' to lock a note with that content as editable to only admins."
-    if len(args) > 1:
-        origargs = args
-        notename = args[0]
-        del args[0]
-        str_args = ' '.join(args)
-        if update.message.chat.type != "private":
-            if notename == "clear":
-                notename = args[0]
-                if update.message.from_user.id in get_admin_ids(bot, update.message.chat_id):
-                    if notename in notes[chat_idstr]["admin"]:
-                        del notes[chat_idstr]["admin"][notename]
-                        note = "Cleared the note " + notename
-                    else:
-                        if notename in notes[chat_idstr]:
-                            del notes[chat_idstr][notename]
-                            note = "Cleared the note " + notename
-                        else:
-                            note = notename + "doesn't exist."
-
-            else:
-                if notename == "lock":
-                    if update.message.from_user.id in get_admin_ids(bot, update.message.chat_id):
-                        lockednote = args[0]
-                        del args[0]
-                        str_args = ' '.join(args)
-                        if lockednote in notes[chat_idstr]:
-                            peasant_paper = notes[chat_idstr][lockednote]
-                            del notes[chat_idstr][lockednote]
-                        if lockednote in notes[chat_idstr]["admin"]:
-                            note = lockednote + " is already locked"
-                        else:
-                            try:
-                                notes[chat_idstr]["admin"][lockednote] = peasant_paper + str_args
-                                note = lockednote + " has been locked. Any note for regular users with the same name has been deleted."
-                            except NameError:
-                                notes[chat_idstr]["admin"][lockednote] = str_args
-                                note = lockednote + " has been locked. Any note for regular users with the same name has been deleted."
-                    else:
-                        note = "Only admins can create locked notes or lock existing notes"
-                else:
-                    if notename in notes[chat_idstr]["admin"]:
-                        if update.message.from_user.id in get_admin_ids(bot, update.message.chat_id):
-                            notes[chat_idstr]["admin"][notename] = notes[chat_idstr]["admin"][notename] = notes[chat_idstr]["admin"][notename] + "\n" + str_args
-                            note = str_args + " added to note " + notename
-                        else:
-                            note = notename + " is locked. Only admins can edit this note"
-                    else:
-                        try:
-                            notes[chat_idstr][notename] = notes[chat_idstr][notename] + "\n" + str_args
-                            note = str_args + " added to note " + notename
-                        except KeyError:
-                            notes[chat_idstr][notename] = str_args
-                            note = str_args + " added to note " + notename
-    try:
-        note
-    except NameError:
-        note = "something went wrong"
-    bot.sendMessage(chat_id=update.message.chat_id,
-                    text=note)
-    with open("notes.json", 'w') as f:
-        json.dump(notes, f)
-
-
-
 if jenkinsconfig == "yes":
     def pickopen(bot, update):
         if update.message.from_user.id == int(config['ADMIN']['id']):
             bot.sendChatAction(chat_id=update.message.chat_id,
                                action=ChatAction.TYPING)
-            curl = "curl -H 'Accept-Type: application/json' " + protocol + "://" + gerrituser + "@" + gerriturl + "/changes/?q=status:open | sed '1d' > open.json"
+            curl = "rm open.json && curl -H 'Accept-Type: application/json' " + protocol + "://" + gerrituser + "@" + gerriturl + "/changes/?q=status:open | sed '1d' > open.json"
             command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             with open('open.json', encoding='utf-8') as data_file:
                 data = json.load(data_file)
@@ -537,6 +377,16 @@ def sync(bot, update):
         reply_markup = InlineKeyboardMarkup(keyboard)
         update.message.reply_text('Would you like to sync on a new build?:', reply_markup=reply_markup)
 
+def reset(bot, update):
+    if update.message.from_user.id == int(config['ADMIN']['id']):
+        keyboard = [[InlineKeyboardButton("YES", callback_data='reseton')],
+
+                    [InlineKeyboardButton("NO", callback_data='resetoff')]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.message.reply_text('Would you like to reporeset?:', reply_markup=reply_markup)
+
+
 def clean(bot, update):
     if update.message.from_user.id == int(config['ADMIN']['id']):
         keyboard = [[InlineKeyboardButton("YES", callback_data='cleanon')],
@@ -546,79 +396,35 @@ def clean(bot, update):
         reply_markup = InlineKeyboardMarkup(keyboard)
         update.message.reply_text('Would you like to clean on a new build?:', reply_markup=reply_markup)
 
+def setrelease(bot, update):
+    if update.message.from_user.id == int(config['ADMIN']['id']):
+        keyboard = [[InlineKeyboardButton("YES", callback_data='releaseon')],
+
+                    [InlineKeyboardButton("NO", callback_data='releaseoff')]]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.message.reply_text('Would you like to do a release?', reply_markup=reply_markup)
+
+
 def buildwithparams(bot, update, query):
     query = update.callback_query
     bot.sendMessage(chat_id=query.message.chat_id,
                     text="You have selected the 'buildWithParameters option, this will include a custom changelog with your build, and will specify whether to sync & clean or not",
                     parse_mode="Markdown")
     user_id = update.callback_query.from_user.id
-    try:
-        cg
-    except NameError:
-        bot.sendMessage(chat_id=query.message.chat_id,
-                        text="You have selected the 'buildWithParameters option, but the changelog is empty. Please use /changelog + 'text' to provide a changlog for your users.",
-                        parse_mode="Markdown")
-        return 1
-    try:
-        syncparam
-    except NameError:
-        bot.sendMessage(chat_id=query.message.chat_id,
-                text="You have selected the 'buildWithParameters option, but have not specified whether you would like to sync before building. Please use /sync to do so.",
-                parse_mode="Markdown")
-        return 1
-    try:
-        cleanparam
-    except NameError:
-        bot.sendMessage(chat_id=query.message.chat_id,
-                text="You have selected the 'buildWithParameters option, but have not specified whether you would like to clean before building. Please use /clean to do so.",
-                parse_mode="Markdown")
-        return 1
-    try:
-        repopickstatus
-    except NameError:
-        bot.sendMessage(chat_id=query.message.chat_id,
-                        text="You have selected the 'buildWithParameters option, but repopick isn't turned on or off. Turn it on or off with /repopick",
-                        parse_mode="Markdown")
-        return 1
-    if repopickstatus == "true":
-        try:
-            rpick
-        except NameError:
-            bot.sendMessage(chat_id=query.message.chat_id,
-                            text="You have selected the 'buildWithParameters option, repopick is on, but it's empty. Please use /repopick + 'changes' to pick changes from gerrit, or turn repopick off with /repopick",
-                            parse_mode="Markdown")
-            return 1
-    if cg:
-        if syncparam:
-            if cleanparam:
-                global changelog
-                changelog = quote_plus('cg')
-                command_string = jenkins + "/job/" + job + "/buildWithParameters?token=" + token + "&changelog=" + cg + "&SYNC=" + syncparam + "&CLEAN=" + cleanparam + "&repopicks=" + rpick
-                command = "curl --user " + user + ":" + password + " " + "'" + command_string + "'"
-                print (command)
-                if user_id == int(config['ADMIN']['id']):
-                    bot.sendChatAction(chat_id=query.message.chat_id,
+    command_string = jenkins + "/job/" + job + "/buildWithParameters?token=" + token + "&changelog=" + cg + "&SYNC=" + syncparam + "&CLEAN=" + cleanparam + "&repopicks=" + rpick + "&REPORESET=" + reporeset + "&RELEASE=" + release
+    command = "curl --user " + user + ":" + password + " " + "'" + command_string + "'"
+    print (command)
+    if user_id == int(config['ADMIN']['id']):
+        bot.sendChatAction(chat_id=query.message.chat_id,
                                        action=ChatAction.TYPING)
-                    output = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                    output = output.stdout.read().decode('utf-8')
-                    output = '`{0}`'.format(output)
+        output = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output = output.stdout.read().decode('utf-8')
+        output = '`{0}`'.format(output)
 
-                    bot.sendMessage(chat_id=query.message.chat_id,
+        bot.sendMessage(chat_id=query.message.chat_id,
                                     text=output,
                                     parse_mode="Markdown")
-            else:
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="You have selected the 'buildWithParameters option, but have not specified whether you would like to clean before building. Please use /clean to do so.",
-                                parse_mode="Markdown")
-        else:
-            bot.sendMessage(chat_id=query.message.chat_id,
-                            text="You have selected the 'buildWithParameters option, but have not specified whether you would like to sync before building. Please use /sync to do so.",
-                            parse_mode="Markdown")
-    else:
-        bot.sendMessage(chat_id=query.message.chat_id,
-                            text="You have selected the 'buildWithParameters option, but the changelog is empty. Please use /changelog + 'text' to provide a changlog for your users.",
-                            parse_mode="Markdown")
-
 
 def buildwithoutparams(bot, update, query):
     user_id = update.callback_query.from_user.id
@@ -654,6 +460,7 @@ def changelog(bot, update, args):
 def repopick(bot, update, args):
         if update.message.from_user.id == int(config['ADMIN']['id']):
             global rpick
+            global repopickstatus
             user = update.message.from_user
 
             str_args = ' '.join(args)
@@ -661,6 +468,7 @@ def repopick(bot, update, args):
                 update.message.reply_text('I will pick changes: ' + "'" + str_args + "'")
                 rpicks = '%20'.join(args)
                 rpick = rpicks
+                repopickstatus = "true"
                 print ("Repopick set to" + "'" + rpick + "'")
             else:
                 keyboard = [[InlineKeyboardButton("ON", callback_data='repopickon')],
@@ -679,6 +487,8 @@ def button(bot, update, direct=True):
             global cleanparam
             global syncparam
             global repopickstatus
+            global reporeset
+            global release
             if selected_button == 'buildWithParameters':
                 bot.editMessageText(text="Selected option: With Paramaters",
                                     chat_id=query.message.chat_id,
@@ -690,57 +500,55 @@ def button(bot, update, direct=True):
                                     message_id=query.message.message_id)
                 buildwithoutparams(bot, update, query)
             if selected_button == 'syncon':
-                bot.editMessageText(text="Selected option: YES",
+                bot.editMessageText(text="Sync set to true",
                                     chat_id=query.message.chat_id,
                                     message_id=query.message.message_id)
                 syncparam = "true"
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="Sync set to true",
-                                parse_mode="Markdown")
             if selected_button == 'syncoff':
-                bot.editMessageText(text="Selected option: NO",
+                bot.editMessageText(text="Sync set to false",
                                     chat_id=query.message.chat_id,
                                     message_id=query.message.message_id)
                 syncparam = "false"
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="Sync set to false",
-                                parse_mode="Markdown")
             if selected_button == 'cleanon':
-                bot.editMessageText(text="Selected option: YES",
+                bot.editMessageText(text="Clean set to true",
                                     chat_id=query.message.chat_id,
                                     message_id=query.message.message_id)
                 cleanparam = "true"
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="Clean set to true",
-                                parse_mode="Markdown")
             if selected_button == 'cleanoff':
-                bot.editMessageText(text="Selected option: NO",
+                bot.editMessageText(text="Clean set to false",
                                     chat_id=query.message.chat_id,
                                     message_id=query.message.message_id)
                 cleanparam = "false"
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="Clean set to false",
-                                parse_mode="Markdown")
             if selected_button == 'repopickon':
-                bot.editMessageText(text="Selected option: ON",
+                bot.editMessageText(text="Repopick set to ON",
                                     chat_id=query.message.chat_id,
                                     message_id=query.message.message_id)
                 repopickstatus = "true"
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="repopick set to ON",
-                                parse_mode="Markdown")
             if selected_button == 'repopickoff':
-                bot.editMessageText(text="Selected option: OFF",
+                bot.editMessageText(text="Repopick set to OFF",
                                     chat_id=query.message.chat_id,
                                     message_id=query.message.message_id)
                 repopickstatus = "false"
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="repopick set to OFF",
-                                parse_mode="Markdown")
-        else:
-                bot.sendMessage(chat_id=query.message.chat_id,
-                                text="You trying to spam me bro?",
-                                parse_mode="Markdown")
+            if selected_button == 'reseton':
+                bot.editMessageText(text="Reporeset set to ON",
+                                    chat_id=query.message.chat_id,
+                                    message_id=query.message.message_id)
+                reporeset = "true"
+            if selected_button == 'resetoff':
+                bot.editMessageText(text="Reporeset set to OFF",
+                                    chat_id=query.message.chat_id,
+                                    message_id=query.message.message_id)
+                reporeset = "false"
+            if selected_button == 'releaseon':
+                bot.editMessageText(text="Release set to ON",
+                                    chat_id=query.message.chat_id,
+                                    message_id=query.message.message_id)
+                release = "true"
+            if selected_button == 'releaseoff':
+                bot.editMessageText(text="Release set to OFF",
+                                    chat_id=query.message.chat_id,
+                                    message_id=query.message.message_id)
+                release = "false"
         return False
 
 def inlinequery(bot, update):
@@ -761,28 +569,28 @@ if jenkinsconfig == "yes":
     pickopen_handler = CommandHandler('pickopen', pickopen)
     sync_handler = CommandHandler('sync', sync)
     clean_handler = CommandHandler('clean', clean)
+    release_handler = CommandHandler('release', setrelease)
     build_handler = CommandHandler('build', choosebuild)
     repopick_handler = CommandHandler('repopick', repopick, pass_args=True)
     changelog_handler = CommandHandler('changelog', changelog,  pass_args=True)
-
+    reset_handler = CommandHandler('reset', reset)
 start_handler = CommandHandler('start', start)
 open_handler = CommandHandler('open', openchanges, pass_args=True)
 help_handler = CommandHandler('help', help_message, pass_args=True)
 link_handler = CommandHandler('link', link, pass_args=True)
-note_handler = CommandHandler('note', note, pass_args=True)
 if jenkinsconfig == "yes":
     dispatcher.add_handler(pickopen_handler)
     dispatcher.add_handler(sync_handler)
     dispatcher.add_handler(clean_handler)
+    dispatcher.add_handler(release_handler)
     dispatcher.add_handler(build_handler)
     dispatcher.add_handler(repopick_handler)
     dispatcher.add_handler(changelog_handler)
-
+    dispatcher.add_handler(reset_handler)
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(open_handler)
 dispatcher.add_handler(help_handler)
 dispatcher.add_handler(link_handler)
-dispatcher.add_handler(note_handler)
 dispatcher.add_handler(CallbackQueryHandler(button))
 dispatcher.add_handler(InlineQueryHandler(inlinequery))
 dispatcher.add_error_handler(error)
