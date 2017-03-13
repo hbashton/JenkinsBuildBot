@@ -1,9 +1,8 @@
-
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
 import requests
+import html
 import configparser
 import urllib
 from urllib.request import urlopen
@@ -283,7 +282,7 @@ def openchanges(bot, update, args):
         bot.sendChatAction(chat_id=update.message.chat_id,
                            action=ChatAction.TYPING)
         curl = "rm open.json && curl -H 'Accept-Type: application/json' " + protocol + "://" + gerrituser + "@" + gerriturl + "/changes/?q=status:open | sed '1d' > open.json"
-        command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
         with open('open.json', encoding='utf-8') as data_file:
             data = json.load(data_file)
         dict_length = len(data)
@@ -296,7 +295,7 @@ def openchanges(bot, update, args):
                 except NameError:
                     openc = ""
                 if str(data[i]['project']) in args:
-                    openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + str(data[i]['_number']) + "</a>" + " - " + str(data[i]['subject'])
+                    openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + html.escape(str(data[i]['_number'])) + "</a>" + html.escape(" - " + str(data[i]['subject']))
             print(openc)
             for i in range(dict_length):
                 try:
@@ -311,7 +310,7 @@ def openchanges(bot, update, args):
                     openc
                 except NameError:
                     openc = ""
-                openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + str(data[i]['_number']) + "</a>" + " - " + str(data[i]['subject'])
+                openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + html.escape(str(data[i]['_number'])) + "</a>" + html.escape(" - " + str(data[i]['subject']))
             for i in range(dict_length):
                 try:
                     cnum
@@ -339,7 +338,7 @@ if jenkinsconfig == "yes":
             bot.sendChatAction(chat_id=update.message.chat_id,
                                action=ChatAction.TYPING)
             curl = "rm open.json && curl -H 'Accept-Type: application/json' " + protocol + "://" + gerrituser + "@" + gerriturl + "/changes/?q=status:open | sed '1d' > open.json"
-            command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
             with open('open.json', encoding='utf-8') as data_file:
                 data = json.load(data_file)
             dict_length = len(data)
