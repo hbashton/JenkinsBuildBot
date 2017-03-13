@@ -3,6 +3,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
+import html
 import requests
 import configparser
 import urllib
@@ -31,7 +32,10 @@ def __repr__(self):
 config = configparser.ConfigParser()
 config.read('bot.ini')
 
-updater = Updater(token=config['KEYS']['bot_api'])
+TOKEN = config['KEYS']['bot_api']
+PORT = int(os.environ.get('PORT', '5000'))
+updater = Updater(TOKEN)
+
 jenkins = config['JENKINS']['url']
 user = config['JENKINS']['user']
 password = config['JENKINS']['password']
@@ -283,7 +287,7 @@ def openchanges(bot, update, args):
         bot.sendChatAction(chat_id=update.message.chat_id,
                            action=ChatAction.TYPING)
         curl = "rm open.json && curl -H 'Accept-Type: application/json' " + protocol + "://" + gerrituser + "@" + gerriturl + "/changes/?q=status:open | sed '1d' > open.json"
-        command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        command = subprocess.Popen(curl, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
         with open('open.json', encoding='utf-8') as data_file:
             data = json.load(data_file)
         dict_length = len(data)
@@ -296,7 +300,7 @@ def openchanges(bot, update, args):
                 except NameError:
                     openc = ""
                 if str(data[i]['project']) in args:
-                    openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + str(data[i]['_number']) + "</a>" + " - " + str(data[i]['subject'])
+                    openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + html.escape(str(data[i]['_number'])) + "</a>" + html.escape(" - " + str(data[i]['subject']))
             print(openc)
             for i in range(dict_length):
                 try:
@@ -311,7 +315,7 @@ def openchanges(bot, update, args):
                     openc
                 except NameError:
                     openc = ""
-                openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + str(data[i]['_number']) + "</a>" + " - " + str(data[i]['subject'])
+                openc = openc + "\n" + "<a href=" + '"' + protocol + "://" + gerriturl + "/#/c/" + str(data[i]['_number']) + "/" + '"' + ">" + html.escape(str(data[i]['_number'])) + "</a>" + html.escape(" - " + str(data[i]['subject']))
             for i in range(dict_length):
                 try:
                     cnum
@@ -595,5 +599,8 @@ dispatcher.add_handler(CallbackQueryHandler(button))
 dispatcher.add_handler(InlineQueryHandler(inlinequery))
 dispatcher.add_error_handler(error)
 
-updater.start_polling()
+updater.start_webhook(listen="0.0.0.0",
+                      port=PORT,
+                      url_path=TOKEN)
+updater.bot.setWebhook("https://bruhhreviewbot.herokuapp.com/" + TOKEN)
 updater.idle()
