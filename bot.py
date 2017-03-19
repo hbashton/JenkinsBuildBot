@@ -319,18 +319,46 @@ def openchanges(bot, update, args):
                 cnum = cnum + " " + str(data[i]['_number'])
         print(openc)
         print(cnum)
+        if len(openc) > 4000:
+            msg = ""
+            openc = openc.splitlines()
+            for line in openc:
+                if type(msg) is not list:
+                    if len(msg + line + "\n") < 4000:
+                        msg += line + "\n"
+                    else:
+                        msg2 = line + "\n"
+                        msg = [msg, msg2]
+                else:
+                    if len(msg[-1] + line + "\n") < 4000:
+                        msg[-1] = msg[-1] + line + "\n"
+                    else:
+                        msg2 = line + "\n"
+                        msg.append(msg2)
+            openc = msg
         if update.message.from_user.id == int(config['ADMIN']['id']) and update.message.chat.type == "private":
-
-            bot.sendMessage(chat_id=update.message.chat_id,
-                            text=openc,
-                            parse_mode="HTML")
+            if type(openc) is not list:
+                bot.sendMessage(chat_id=update.message.chat_id,
+                                text=openc,
+                                parse_mode="HTML")
+            else:
+                for msg in openc:
+                    bot.sendMessage(chat_id=update.message.chat_id,
+                                text=msg,
+                                parse_mode="HTML")
             bot.sendMessage(chat_id=update.message.chat_id,
                             text=cnum,
                             parse_mode="Markdown")
         else:
-            bot.sendMessage(chat_id=update.message.chat_id,
-                            text=openc,
-                            parse_mode="HTML")
+            if openc is not list:
+                bot.sendMessage(chat_id=update.message.chat_id,
+                                text=openc,
+                                parse_mode="HTML")
+            else:
+                for msg in openc:
+                    bot.sendMessage(chat_id=update.message.chat_id,
+                                text=msg,
+                                parse_mode="HTML")
 
 if jenkinsconfig == "yes":
     def pickopen(bot, update):
